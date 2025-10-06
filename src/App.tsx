@@ -54,7 +54,7 @@ function App() {
       <div className="flex h-screen">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Pass setActiveTab AND user info */}
+          {/*------------ Pass setActiveTab AND user info-------- */}
           <Navbar
             userName="Andrea Pirlo"
             userRole="CRM Manager"
