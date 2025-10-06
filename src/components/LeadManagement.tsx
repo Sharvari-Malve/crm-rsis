@@ -57,7 +57,6 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
     (tech.username || "").toLowerCase().includes(technicianSearch.toLowerCase()) ||
     (tech.mobile || "").includes(technicianSearch)
   );
-
   // Filter leads safely
   const filteredLeads = leads.filter((lead) => {
     if (!lead) return false;
@@ -171,27 +170,32 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
   // Assign Technician
 
   const handleOpenAssignModal = async (lead: Lead) => {
+    // Set the current lead and reset other modal states
     setCurrentLead(lead);
-    setSelectedTechnicianId(null);
-    setShowAssignModal(true);
-    setTechnicianSearch(""); 
+    setSelectedTechnicianId(null); // reset selected technician
+    setTechnicianSearch("");       // clear search
+    setShowAssignModal(true);      // open modal immediately
+
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/get-user-assign-list`,
         { search: "" },
         { headers: { Authorization: `Bearer ${cookies.get("auth")}` } }
       );
-      if (res.data.status === "SUCCESS" && Array.isArray(res.data.data)) {
-        setTechnicianList(res.data.data); 
+
+      // Make sure data exists and is an array
+      if (Array.isArray(res.data?.data)) {
+        setTechnicianList(res.data.data);
       } else {
         setTechnicianList([]);
-        toast.warn("No technicians found");
+        toast.warn(res.data?.message || "No technicians found");
       }
     } catch (error: any) {
       setTechnicianList([]);
       toast.error(error.response?.data?.message || "Error fetching technicians.");
     }
   };
+
 
 
   const handleConfirmAssign = async () => {
@@ -540,21 +544,34 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
             <div className="p-6 max-h-[300px] overflow-y-auto space-y-2">
               {filteredTechnicians.length > 0 ? (
                 filteredTechnicians.map((tech) => (
-                  <label key={tech.mobile} className={`...`}>
-                    <input
-                      type="radio"
-                      name="technician"
-                      value={tech.mobile}
-                      checked={selectedTechnicianId === tech.mobile}
-                      onChange={() => setSelectedTechnicianId(tech.mobile)}
-                    />
-                    <span>{tech.username} ({tech.mobile})</span>
-                  </label>
+                  <div
+                    key={tech.mobile}
+                    className="flex flex-col  p-2 rounded-lg cursor-pointer hover:bg-gray-100"
+                  >
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="technician"
+                        value={tech.mobile}
+                        checked={selectedTechnicianId === tech.mobile}
+                        onChange={() => setSelectedTechnicianId(tech.mobile)}
+                        className="h-5 w-5"
+                      />
+                      <div className="font-medium">
+                        {tech.username
+                          .toLowerCase()
+                          .split(" ")
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(" ")}{" "}({tech.mobile})
+                      </div>
+
+                    </label>
+
+                  </div>
                 ))
               ) : (
                 <p className="text-gray-500 text-center">No technicians found</p>
               )}
-
             </div>
 
             {/* Footer */}
