@@ -17,6 +17,7 @@ import Login from "./login/Login";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
   if (!isLoggedIn) {
@@ -32,8 +33,8 @@ function App() {
 
   return (
     <div className="min-h-screen">
-      <div className="flex h-screen">
-        <Sidebar />
+      <div className="flex flex-col md:flex-row h-screen">
+        <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="flex-1 flex flex-col overflow-hidden">
           <Navbar
             userName="Andrea Pirlo"
@@ -41,8 +42,9 @@ function App() {
             userEmail="andrea@example.com"
             userContact="+91 9876543210"
             setActiveTab={(tab) => navigate(`/${tab}`)}
+            setSidebarOpen={setSidebarOpen}
           />
-          <div className="flex-1 p-6 overflow-auto bg-[#ebedfa] rounded-2xl mb-4 mr-4">
+          <div className="flex-1 p-4 md:p-6 overflow-auto bg-[#ebedfa] rounded-2xl mb-4 md:mr-4">
             <Routes>
               <Route path="/" element={<Dashboard setActiveTab={(tab) => navigate(`/${tab}`)} />} />
               <Route path="/dashboard" element={<Dashboard setActiveTab={(tab) => navigate(`/${tab}`)} />} />
