@@ -2,20 +2,21 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import Cookies from "universal-cookie";
-import { Edit, Plus, Search, Upload, Eye } from "lucide-react";
+import { Edit, Plus, Search, Upload, Eye, Trash2 } from "lucide-react";
 
 interface Lead {
   id: number;
   clientName: string;
   projectName: string;
-  followUpDate: string;
-  remarks: "Call" | "Email" | "WhatsApp";
-  nextFollowUpDate: string;
-  followUpBy: string;
-  status: "Pending" | "Approved" | "Rejected";
-  phone: string;
-  email: string;
-  quotationFile?: File;
+  followUpDate?: string; 
+  remark?: string;
+  mode?: "Call" | "Email" | "WhatsApp" | "Other";
+  nextFollowUpDate?: string;
+  followUpBy?: string;
+  status?: "Pending" | "Approved" | "Rejected" | "Other";
+  phone?: string;
+  email?: string;
+  quotationFile?: string | File | null;
 }
 
 export default function FollowUpManagement() {
@@ -52,19 +53,22 @@ export default function FollowUpManagement() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState<Partial<Lead>>({
-    id: undefined, // add id here
+    id: undefined,
     clientName: "",
     projectName: "",
-    followUpDate: "",
-    remarks: "Call",
     nextFollowUpDate: "",
     followUpBy: "",
+    remark: "",
+    mode: "Call",
     status: "Pending",
-    phone: "",
-    email: "",
+    quotationFile: null,
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof Omit<Lead, "id" | "quotationFile">, string>>>({});
+
+  // Delete confirmation
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null);
 
   const getLeads = async () => {
     try {
@@ -90,11 +94,12 @@ export default function FollowUpManagement() {
           followUpBy: f.followUpByName || "",
           followUpDate: f.followUpDate || "",
           nextFollowUpDate: f.nextFollowUp || "",
-          remarks: f.remarks || "Call",
+          remark: f.remark || "",
+          mode: f.mode || "Call",
           status: f.status || "Pending",
           phone: f.phone || "",
           email: f.email || "",
-          quotationFile: f.quotationFile || undefined,
+          quotationFile: f.quotationFile || null,
         }));
         setLeads(mappedLeads);
       } else {
@@ -117,20 +122,11 @@ export default function FollowUpManagement() {
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
-
-    // Required fields
-    if (!formData.clientName?.trim()) newErrors.clientName = "Client name is required";
-    if (!formData.projectName?.trim()) newErrors.projectName = "Project name is required";
-    if (!formData.followUpDate) newErrors.followUpDate = "Follow-Up Date is required";
+    // Required fields (for follow-up entry)
     if (!formData.nextFollowUpDate) newErrors.nextFollowUpDate = "Next Follow-Up Date is required";
-    if (!formData.remarks) newErrors.remarks = "Remarks is required";
-    if (!formData.followUpBy?.trim()) newErrors.followUpBy = "Follow-Up By is required";
-    if (!formData.phone?.trim()) newErrors.phone = "Phone is required";
-    else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = "Phone must be 10 digits";
-    if (!formData.email?.trim()) newErrors.email = "Email is required";
-    else if (!/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = "Invalid email format";
+    if (!formData.followUpBy || !String(formData.followUpBy).trim()) newErrors.followUpBy = "Follow-Up By is required";
+    if (!formData.mode) newErrors.mode = "Mode is required";
     if (!formData.status) newErrors.status = "Status is required";
-
     setErrors(newErrors);
 
     return Object.keys(newErrors).length === 0;
@@ -144,16 +140,29 @@ export default function FollowUpManagement() {
     try {
       setLoading(true);
       let apiUrl = `${import.meta.env.VITE_BACKEND_URL}/add-follow-up`;
-      let payload: any = { ...formData };
+      const payload: any = {
+        ...formData,
+      };
 
+      // If there's a file attached, use FormData
       if (editLead) {
         apiUrl = `${import.meta.env.VITE_BACKEND_URL}/update-follow-up`;
         payload.id = editLead.id;
       }
 
-      const res = await axios.post(apiUrl, payload, {
-        headers: { Authorization: `Bearer ${cookies.get("auth")}` },
-      });
+      let res;
+      if (formData.quotationFile instanceof File) {
+        const fd = new FormData();
+        Object.keys(payload).forEach((k) => fd.append(k, (payload as any)[k]));
+        fd.append("quotationFile", formData.quotationFile as File);
+        res = await axios.post(apiUrl, fd, {
+          headers: { Authorization: `Bearer ${cookies.get("auth")}` },
+        });
+      } else {
+        res = await axios.post(apiUrl, payload, {
+          headers: { Authorization: `Bearer ${cookies.get("auth")}` },
+        });
+      }
 
       if (res.data.status === "SUCCESS") {
         toast.success(editLead ? "Lead updated!" : "Lead added!");
@@ -215,13 +224,12 @@ export default function FollowUpManagement() {
       id: undefined,
       clientName: "",
       projectName: "",
-      followUpDate: "",
-      remarks: "Call",
       nextFollowUpDate: "",
       followUpBy: "",
+      remark: "",
+      mode: "Call",
       status: "Pending",
-      phone: "",
-      email: "",
+      quotationFile: null,
     });
     setEditLead(null);
     setErrors({});
@@ -229,11 +237,54 @@ export default function FollowUpManagement() {
   };
 
   const handleEditLead = (lead: Lead) => {
-    setFormData({ ...lead });
+    // populate the simpler follow-up form
+    setFormData({
+      id: lead.id,
+      clientName: lead.clientName,
+      projectName: lead.projectName,
+      nextFollowUpDate: lead.nextFollowUpDate || "",
+      followUpBy: lead.followUpBy || "",
+      remark: lead.remark || "",
+      mode: lead.mode || "Call",
+      status: lead.status || "Pending",
+      quotationFile: lead.quotationFile || null,
+    });
     setEditLead(lead);
     setErrors({});
     setShowFormModal(true);
   };
+
+  // Delete handling
+  const confirmDelete = (lead: Lead) => {
+    setDeleteTarget(lead);
+    setShowDeleteModal(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      setLoading(true);
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/delete-follow-up`, { id: deleteTarget.id }, {
+        headers: { Authorization: `Bearer ${cookies.get("auth")}` },
+      });
+      if (res.data?.status === "SUCCESS") {
+        toast.success("Follow-up deleted");
+        setLeads((prev) => prev.filter((l) => l.id !== deleteTarget.id));
+      } else {
+        toast.warn(res.data?.message || "Could not delete");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Error deleting follow-up");
+    } finally {
+      setLoading(false);
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  // determine header left values
+  const headerLead = editLead || (currentLeads.length ? currentLeads[0] : null);
 
   return (
     <div className="space-y-6">
@@ -241,7 +292,7 @@ export default function FollowUpManagement() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Follow Up Management</h2>
-          <p className="text-gray-600 mt-1">Create, edit and manage Follow Up Data</p>
+          <p className="text-gray-600 mt-1">{headerLead ? `${headerLead.clientName} • ${headerLead.projectName}` : 'All Leads'} </p>
         </div>
         <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:flex-none">
@@ -293,67 +344,55 @@ export default function FollowUpManagement() {
           <thead className="bg-white/20 sticky top-0">
             <tr>
               <th className="px-2 py-3">Sr. No</th>
-              <th className="px-6 py-3">Client Name</th>
-              <th className="px-6 py-3">Project Name</th>
-              <th className="px-6 py-3">Follow-up Date</th>
-              <th className="px-6 py-3">Next Follow-up</th>
-              <th className="px-6 py-3">Follow-up By</th>
-              <th className="px-6 py-3">Contact</th>
+              <th className="px-6 py-3">Follow Update</th>
+              <th className="px-6 py-3">Next Follow Up</th>
+              <th className="px-6 py-3">Follow Up By</th>
+              <th className="px-6 py-3">Remark</th>
+              <th className="px-6 py-3">Mode</th>
+              <th className="px-6 py-3">Quotation</th>
               <th className="px-6 py-3">Status</th>
-              <th className="px-6 py-3">Actions</th>
+              <th className="px-6 py-3">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y text-center">
             {currentLeads.map((lead, index) => (
               <tr key={lead.id} className="hover:bg-gray-50">
                 <td className="px-6 py-3">{indexOfFirstLead + index + 1}</td>
-                <td className="px-6 py-3">{lead.clientName}</td>
-                <td className="px-6 py-3">{lead.projectName}</td>
+                <td className="px-6 py-3">{lead.followUpDate ? new Date(lead.followUpDate).toLocaleDateString('en-GB') : '-'}</td>
+                <td className="px-6 py-3">{lead.nextFollowUpDate ? new Date(lead.nextFollowUpDate).toLocaleDateString('en-GB') : '-'}</td>
+                <td className="px-6 py-3">{lead.followUpBy || '-'}</td>
+                <td className="px-6 py-3">{lead.remark || '-'}</td>
+                <td className="px-6 py-3">{lead.mode || '-'}</td>
                 <td className="px-6 py-3">
-                  {new Date(lead.followUpDate).toLocaleDateString("en-GB")}
-                </td>
-                <td className="px-6 py-3">
-                  {lead.nextFollowUpDate ? new Date(lead.nextFollowUpDate).toLocaleDateString("en-GB", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "2-digit",
-                  }) : "-"}
-                </td>
-                <td className="px-6 py-3">{lead.followUpBy}</td>
-                <td className="px-6 py-3">
-                  {lead.remarks === "Call" && <a href={`tel:${lead.phone}`}>Call</a>}
-                  {lead.remarks === "Email" && <a href={`mailto:${lead.email}`}>Email</a>}
-                  {lead.remarks === "WhatsApp" && <a href={`https://wa.me/${lead.phone.replace("+", "")}`} target="_blank">WhatsApp</a>}
+                  {lead.quotationFile ? (
+                    <button
+                      onClick={() => {
+                        if (typeof lead.quotationFile === 'string') {
+                          window.open(lead.quotationFile, '_blank');
+                        } else {
+                          const url = URL.createObjectURL(lead.quotationFile as File);
+                          window.open(url, '_blank');
+                        }
+                      }}
+                      className="text-blue-600"
+                    >
+                      <Eye size={18} />
+                    </button>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
                 </td>
                 <td className="px-6 py-3">{lead.status}</td>
-                <td className="px-6 py-3 flex items-center space-x-2">
-                  <button onClick={() => handleEditLead(lead)} className="text-green-600">
-                    <Edit size={22} />
+                <td className="px-6 py-3 flex items-center justify-center space-x-2">
+                  <button onClick={() => handleEditLead(lead)} className="text-green-600" title="Edit">
+                    <Edit size={18} />
                   </button>
-                  {lead.status === "Approved" && (
-                    <>
-                      {lead.quotationFile && (
-                        <button
-                          onClick={() => {
-                            const url = URL.createObjectURL(lead.quotationFile!);
-                            window.open(url, "_blank");
-                          }}
-                          className="text-blue-600"
-                        >
-                          <Eye size={22} />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          setUploadLead(lead);
-                          setShowUploadModal(true);
-                        }}
-                        className="text-teal-600"
-                      >
-                        <Upload size={22} />
-                      </button>
-                    </>
-                  )}
+                  <button onClick={() => { setUploadLead(lead); setShowUploadModal(true); }} className="text-teal-600" title="Upload Quotation">
+                    <Upload size={18} />
+                  </button>
+                  <button onClick={() => confirmDelete(lead)} className="text-red-600" title="Delete">
+                    <Trash2 size={18} />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -379,115 +418,84 @@ export default function FollowUpManagement() {
             </div>
 
             {/* Form Container with fixed height and scroll */}
-            <div className="p-6 grid grid-cols-2 gap-4 overflow-y-auto flex-1">
-              {/* Client Name */}
-              <div className="flex flex-col">
-                <input
-                  type="text"
-                  placeholder="Client Name"
-                  value={formData.clientName}
-                  onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                  className={`w-full border px-3 py-2 rounded-lg ${errors.clientName ? "border-red-500" : ""}`}
-                />
-                <p className="text-red-500 text-sm min-h-[1.25rem]">{errors.clientName || ""}</p>
-              </div>
-
-              {/* Project Name */}
-              <div className="flex flex-col">
-                <input
-                  type="text"
-                  placeholder="Project Name"
-                  value={formData.projectName}
-                  onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
-                  className={`w-full border px-3 py-2 rounded-lg ${errors.projectName ? "border-red-500" : ""}`}
-                />
-                <p className="text-red-500 text-sm min-h-[1.25rem]">{errors.projectName || ""}</p>
-              </div>
-
-              {/* Follow-Up Date */}
-              <div className="flex flex-col">
-                <input
-                  type="date"
-                  value={formData.followUpDate}
-                  onChange={(e) => setFormData({ ...formData, followUpDate: e.target.value })}
-                  className={`w-full border px-3 py-2 rounded-lg ${errors.followUpDate ? "border-red-500" : ""}`}
-                />
-                <p className="text-red-500 text-sm min-h-[1.25rem]">{errors.followUpDate || ""}</p>
-              </div>
-
+            <div className="p-6 grid grid-cols-1 gap-4 overflow-y-auto flex-1">
               {/* Next Follow-Up Date */}
               <div className="flex flex-col">
+                <label className="text-sm text-gray-600 mb-1">Next Follow Up Date</label>
                 <input
                   type="date"
-                  value={formData.nextFollowUpDate}
+                  value={formData.nextFollowUpDate || ""}
                   onChange={(e) => setFormData({ ...formData, nextFollowUpDate: e.target.value })}
                   className={`w-full border px-3 py-2 rounded-lg ${errors.nextFollowUpDate ? "border-red-500" : ""}`}
                 />
                 <p className="text-red-500 text-sm min-h-[1.25rem]">{errors.nextFollowUpDate || ""}</p>
               </div>
 
-              {/* Remarks */}
+              {/* Follow Up By */}
               <div className="flex flex-col">
-                <select
-                  value={formData.remarks}
-                  onChange={(e) => setFormData({ ...formData, remarks: e.target.value as Lead["remarks"] })}
-                  className={`w-full border px-3 py-2 rounded-lg ${errors.remarks ? "border-red-500" : ""}`}
-                >
-                  <option value="">Select Remarks</option>
-                  <option value="Call">Call</option>
-                  <option value="Email">Email</option>
-                  <option value="WhatsApp">WhatsApp</option>
-                </select>
-                <p className="text-red-500 text-sm min-h-[1.25rem]">{errors.remarks || ""}</p>
-              </div>
-
-              {/* Follow-up By */}
-              <div className="flex flex-col">
+                <label className="text-sm text-gray-600 mb-1">Follow Up By</label>
                 <input
                   type="text"
-                  placeholder="Follow-up By"
-                  value={formData.followUpBy}
+                  placeholder="Follow Up By"
+                  value={formData.followUpBy || ""}
                   onChange={(e) => setFormData({ ...formData, followUpBy: e.target.value })}
                   className={`w-full border px-3 py-2 rounded-lg ${errors.followUpBy ? "border-red-500" : ""}`}
                 />
                 <p className="text-red-500 text-sm min-h-[1.25rem]">{errors.followUpBy || ""}</p>
               </div>
 
-              {/* Phone */}
+              {/* Remark */}
               <div className="flex flex-col">
-                <input
-                  type="text"
-                  placeholder="Phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className={`w-full border px-3 py-2 rounded-lg ${errors.phone ? "border-red-500" : ""}`}
+                <label className="text-sm text-gray-600 mb-1">Remark</label>
+                <textarea
+                  rows={3}
+                  placeholder="Remark"
+                  value={formData.remark || ""}
+                  onChange={(e) => setFormData({ ...formData, remark: e.target.value })}
+                  className={`w-full border px-3 py-2 rounded-lg`}
                 />
-                <p className="text-red-500 text-sm min-h-[1.25rem]">{errors.phone || ""}</p>
               </div>
 
-              {/* Email */}
+              {/* Mode */}
               <div className="flex flex-col">
+                <label className="text-sm text-gray-600 mb-1">Mode</label>
+                <select
+                  value={formData.mode || "Call"}
+                  onChange={(e) => setFormData({ ...formData, mode: e.target.value as any })}
+                  className={`w-full border px-3 py-2 rounded-lg ${errors.mode ? "border-red-500" : ""}`}
+                >
+                  <option value="Call">Call</option>
+                  <option value="Email">Email</option>
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="Other">Other</option>
+                </select>
+                <p className="text-red-500 text-sm min-h-[1.25rem]">{errors.mode || ""}</p>
+              </div>
+
+              {/* Upload Quotation */}
+              <div className="flex flex-col">
+                <label className="text-sm text-gray-600 mb-1">Upload Quotation</label>
                 <input
-                  type="email"
-                  placeholder="Email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={`w-full border px-3 py-2 rounded-lg ${errors.email ? "border-red-500" : ""}`}
+                  type="file"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) setFormData({ ...formData, quotationFile: e.target.files[0] });
+                  }}
+                  className="w-full"
                 />
-                <p className="text-red-500 text-sm min-h-[1.25rem]">{errors.email || ""}</p>
               </div>
 
               {/* Status */}
               <div className="flex flex-col">
+                <label className="text-sm text-gray-600 mb-1">Status</label>
                 <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as Lead["status"] })}
+                  value={formData.status || "Pending"}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
                   className={`w-full border px-3 py-2 rounded-lg ${errors.status ? "border-red-500" : ""}`}
                 >
-                  <option value="">Select Status</option>
                   <option value="Pending">Pending</option>
                   <option value="Approved">Approved</option>
                   <option value="Rejected">Rejected</option>
+                  <option value="Other">Other</option>
                 </select>
                 <p className="text-red-500 text-sm min-h-[1.25rem]">{errors.status || ""}</p>
               </div>
@@ -501,6 +509,20 @@ export default function FollowUpManagement() {
               <button onClick={handleSaveLead} className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg">
                 Save
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deleteTarget && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white w-[420px] shadow-2xl border border-gray-300 rounded-xl p-6">
+            <h3 className="text-lg font-semibold">Confirm Delete</h3>
+            <p className="text-sm text-gray-600 mt-2">Are you sure you want to delete follow-up for <strong>{deleteTarget.clientName}</strong>?</p>
+            <div className="mt-6 flex justify-end space-x-3">
+              <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button>
+              <button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white rounded-md">Delete</button>
             </div>
           </div>
         </div>
