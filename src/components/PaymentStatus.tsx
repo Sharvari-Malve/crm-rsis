@@ -34,7 +34,7 @@ const Payments: React.FC = () => {
         paymentMethod: "Cash",
         installmentCount: "" as any,
         paidAmount: "" as any,
-       remainingAmount: "" as any,
+        remainingAmount: "" as any,
         givenTo: "",
         totalAmount: "" as any,
         status: "Pending",
@@ -219,50 +219,55 @@ const Payments: React.FC = () => {
             </div>
 
             {/* Table */}
+
             <div className="bg-white/40 backdrop-blur-md rounded-2xl border border-white/40 overflow-hidden">
-                <table className="w-full">
-                    <thead className="bg-white/20 text-left">
-                        <tr>
-                            <th className="px-4 py-2">Sr.</th>
-                            <th className="px-4 py-2">Project Name</th>
-                            <th className="px-4 py-2">Client Name</th>
-                            <th className="px-4 py-2">Method</th>
-                            <th className="px-4 py-2">Installments</th>
-                            <th className="px-4 py-2">Paid</th>
-                            <th className="px-4 py-2">Remaining</th>
-                            <th className="px-4 py-2">Given To</th>
-                            <th className="px-4 py-2">Amount</th>
-                            <th className="px-4 py-2">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {currentPayments.length > 0 ? currentPayments.map((payment, index) => (
-                            <tr key={payment.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-2">{indexOfFirstPayment + index + 1}</td>
-                                <td className="px-4 py-2">{payment.projectName}</td>
-                                <td className="px-4 py-2">{payment.clientName}</td>
-                                <td className="px-4 py-2">{payment.paymentMethod}</td>
-                                <td className="px-4 py-2">{payment.installmentCount}</td>
-                                <td className="px-4 py-2">{payment.paidAmount}</td>
-                                <td className="px-4 py-2">{payment.remainingAmount}</td>
-                                <td className="px-4 py-2">{payment.givenTo}</td>
-                                <td className="px-4 py-2">₹{payment.totalAmount}</td>
-                                <td className="px-4 py-2 flex gap-2">
-                                    <button className="text-teal-600" onClick={() => handleEdit(payment)}><Edit size={20} /></button>
-                                    <button className="text-red-600" onClick={() => setDeletePayment(payment)}><Trash2 size={20} /></button>
-                                    <button className="text-gray-600" onClick={() => alert("Download logic")}>
-                                        <FileDown size={20} />
-                                    </button>
-                                </td>
-                            </tr>
-                        )) : (
+                {/* Mobile scroll wrapper */}
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y">
+                        <thead className="bg-white/20 text-left">
                             <tr>
-                                <td colSpan={11} className="text-center py-6 text-gray-500">No payments found</td>
+                                <th className="px-4 py-2 whitespace-nowrap">Sr.</th>
+                                <th className="px-4 py-2 whitespace-nowrap">Project Name</th>
+                                <th className="px-4 py-2 whitespace-nowrap">Client Name</th>
+                                <th className="px-4 py-2 whitespace-nowrap">Method</th>
+                                <th className="px-4 py-2 whitespace-nowrap">Installments</th>
+                                <th className="px-4 py-2 whitespace-nowrap">Paid</th>
+                                <th className="px-4 py-2 whitespace-nowrap">Remaining</th>
+                                <th className="px-4 py-2 whitespace-nowrap">Given To</th>
+                                <th className="px-4 py-2 whitespace-nowrap">Amount</th>
+                                <th className="px-4 py-2 whitespace-nowrap">Actions</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y">
+                            {currentPayments.length > 0 ? currentPayments.map((payment, index) => (
+                                <tr key={payment.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 whitespace-nowrap">{indexOfFirstPayment + index + 1}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap">{payment.projectName}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap">{payment.clientName}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap">{payment.paymentMethod}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap">{payment.installmentCount}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap">{payment.paidAmount}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap">{payment.remainingAmount}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap">{payment.givenTo}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap">₹{payment.totalAmount}</td>
+                                    <td className="px-4 py-2 flex gap-2 whitespace-nowrap">
+                                        <button className="text-teal-600" onClick={() => handleEdit(payment)}><Edit size={20} /></button>
+                                        <button className="text-red-600" onClick={() => setDeletePayment(payment)}><Trash2 size={20} /></button>
+                                        <button className="text-gray-600" onClick={() => alert("Download logic")}>
+                                            <FileDown size={20} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={10} className="text-center py-6 text-gray-500">No payments found</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
 
 
 

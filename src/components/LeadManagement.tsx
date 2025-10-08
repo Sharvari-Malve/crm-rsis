@@ -47,7 +47,7 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
 
   // Assign Technician Modal
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [technicianList, setTechnicianList] = useState<{ username: string; mobile: string }[]>([]);
+  const [technicianList, setTechnicianList] = useState<{ id: number; username: string; mobile: string }[]>([]);
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string | null>(null); // store mobile
 
   const [currentLead, setCurrentLead] = useState<Lead | null>(null);
@@ -183,9 +183,15 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
         { headers: { Authorization: `Bearer ${cookies.get("auth")}` } }
       );
 
-      // Make sure data exists and is an array
       if (Array.isArray(res.data?.data)) {
-        setTechnicianList(res.data.data);
+        //Ensure IDs are stored
+        setTechnicianList(
+          res.data.data.map((tech: any) => ({
+            id: tech.id,
+            username: tech.username,
+            mobile: tech.mobile,
+          }))
+        );
       } else {
         setTechnicianList([]);
         toast.warn(res.data?.message || "No technicians found");
@@ -203,8 +209,11 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
     try {
       setLoading(true);
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/assign-technician`,
-        { leadId: currentLead.id, technicianId: selectedTechnicianId },
+        `${import.meta.env.VITE_BACKEND_URL}/lead-assign`,
+        {
+          leadId: currentLead.id,
+          technicianId: selectedTechnicianId,
+        },
         { headers: { Authorization: `Bearer ${cookies.get("auth")}` } }
       );
       if (res.data.status === "SUCCESS") {
@@ -274,51 +283,54 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white/40 backdrop-blur-md rounded-2xl border border-white/40 overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-white/20 text-lg">
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Sr. No</th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">Client Name</th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">Company</th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">Contact</th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">Email</th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">Project Name</th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">Source</th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">Interested %</th>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">Actions</th>
+     {/* Responsive Table */}
+<div className="bg-white/40 backdrop-blur-md rounded-2xl border border-white/40 overflow-hidden">
+  {/* Mobile wrapper for horizontal scroll */}
+  <div className="overflow-x-auto">
+    <table className="min-w-full divide-y">
+      <thead className="bg-white/20 text-lg">
+        <tr>
+          <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Sr. No</th>
+          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Client Name</th>
+          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Company</th>
+          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Contact</th>
+          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Email</th>
+          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Project Name</th>
+          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Source</th>
+          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Interested %</th>
+          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y">
+        {currentLeads.length > 0 ? (
+          currentLeads.map((lead, index) => (
+            <tr key={lead.id} className="hover:bg-gray-50">
+              <td className="px-4 py-3 whitespace-nowrap">{indexOfFirstLead + index + 1}</td>
+              <td className="px-6 py-3 cursor-pointer whitespace-nowrap" onClick={() => setActiveTab("follow")}>{lead.name}</td>
+              <td className="px-6 py-3 whitespace-nowrap">{lead.company}</td>
+              <td className="px-6 py-3 whitespace-nowrap">{lead.mobile}</td>
+              <td className="px-6 py-3 whitespace-nowrap">{lead.email}</td>
+              <td className="px-6 py-3 whitespace-nowrap">{lead.projectName}</td>
+              <td className="px-6 py-3 whitespace-nowrap">{lead.leadSource}</td>
+              <td className="px-6 py-3 whitespace-nowrap">{lead.interestPercentage}%</td>
+              <td className="px-6 py-3 whitespace-nowrap">
+                <div className="flex items-center space-x-2">
+                  <button className="text-teal-600" onClick={() => handleEditLead(lead)}><Edit size={22} /></button>
+                  <button className="text-red-600" onClick={() => handleDeleteLead(lead)}><Trash2 size={22} /></button>
+                  <button className="text-indigo-600 hover:text-indigo-800" title="Assign" onClick={() => handleOpenAssignModal(lead)}><UserPlus size={22} /></button>
+                </div>
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y">
-            {currentLeads.length > 0 ? (
-              currentLeads.map((lead, index) => (
-                <tr key={lead.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">{indexOfFirstLead + index + 1}</td>
-                  <td className="px-6 py-3 cursor-pointer" onClick={() => setActiveTab("follow")}>{lead.name}</td>
-                  <td className="px-6 py-3">{lead.company}</td>
-                  <td className="px-6 py-3">{lead.mobile}</td>
-                  <td className="px-6 py-3">{lead.email}</td>
-                  <td className="px-6 py-3">{lead.projectName}</td>
-                  <td className="px-6 py-3">{lead.leadSource}</td>
-                  <td className="px-6 py-3">{lead.interestPercentage}%</td>
-                  <td className="px-6 py-3">
-                    <div className="flex items-center space-x-2">
-                      <button className="text-teal-600" onClick={() => handleEditLead(lead)}><Edit size={22} /></button>
-                      <button className="text-red-600" onClick={() => handleDeleteLead(lead)}><Trash2 size={22} /></button>
-                      <button className="text-indigo-600 hover:text-indigo-800" title="Assign" onClick={() => handleOpenAssignModal(lead)}><UserPlus size={22} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={9} className="text-center py-6 text-gray-500">No leads found</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          ))
+        ) : (
+          <tr>
+            <td colSpan={9} className="text-center py-6 text-gray-500">No leads found</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
 
       {/* Add/Edit Modal */}
       {showFormModal && (
@@ -552,9 +564,9 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
                       <input
                         type="radio"
                         name="technician"
-                        value={tech.mobile}
-                        checked={selectedTechnicianId === tech.mobile}
-                        onChange={() => setSelectedTechnicianId(tech.mobile)}
+                        value={tech.id}
+                        checked={selectedTechnicianId === String(tech.id)}
+                        onChange={() => setSelectedTechnicianId(String(tech.id))}
                         className="h-5 w-5"
                       />
                       <div className="font-medium">
