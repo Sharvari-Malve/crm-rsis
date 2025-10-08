@@ -27,7 +27,10 @@ export default function Sidebar() {
         <nav className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            // consider follow route as part of leads so sidebar stays active on follow-up pages
+            const isActive =
+              location.pathname === item.path ||
+              (item.id === "leads" && location.pathname.startsWith("/follow"));
             return (
               <button
                 key={item.id}
