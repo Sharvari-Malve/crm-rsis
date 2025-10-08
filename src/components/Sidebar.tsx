@@ -1,28 +1,18 @@
-import React from 'react';
-import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  BarChart3,
-  User,
-  Calendar,
-  Banknote,
-  Settings
-} from 'lucide-react';
+import { LayoutDashboard, Users, User, Banknote } from 'lucide-react';
 
-interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-}
 
-export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+import { useLocation, useNavigate } from "react-router-dom";
+
+export default function Sidebar() {
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'user', label: 'User Management', icon: User },
-    { id: 'leads', label: 'Lead Management', icon: Users },
-    // { id: 'quotations', label:'Quotation Log', icon: FileText },
-    { id: 'payment', label: 'Payment Status', icon: Banknote },
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+    { id: "user", label: "User Management", icon: User, path: "/user" },
+    { id: "leads", label: "Lead Management", icon: Users, path: "/leads" },
+    // { id: "quotations", label: "Quotation Log", icon: FileText, path: "/quotations" },
+    { id: "payment", label: "Payment Status", icon: Banknote, path: "/payment" },
   ];
+  const location = useLocation();
+  const navigate = useNavigate();
 
   return (
     <div className="flex flex-col justify-between w-64 bg-[#ebedfa] p-6 shadow-xl rounded-2xl m-4">
@@ -37,16 +27,15 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         <nav className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
-
+            const isActive = location.pathname === item.path;
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => navigate(item.path)}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
-                    ? 'bg-[#278f9b] text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-white/30'
-                  }`}
+                  ? "bg-[#278f9b] text-white shadow-lg"
+                  : "text-gray-700 hover:bg-white/30"
+                }`}
               >
                 <Icon size={20} />
                 <span className="font-medium">{item.label}</span>
