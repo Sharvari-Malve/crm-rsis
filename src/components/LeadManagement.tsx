@@ -172,9 +172,9 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
   const handleOpenAssignModal = async (lead: Lead) => {
     // Set the current lead and reset other modal states
     setCurrentLead(lead);
-    setSelectedTechnicianId(null); // reset selected technician
-    setTechnicianSearch("");       // clear search
-    setShowAssignModal(true);      // open modal immediately
+    setSelectedTechnicianId(null); 
+    setTechnicianSearch("");       
+    setShowAssignModal(true);     
 
     try {
       const res = await axios.post(
@@ -246,42 +246,82 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Lead Management</h2>
-          <p className="text-gray-600 mt-1">Create, edit and manage Leads</p>
-        </div>
-        <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
-          {/* Search */}
-          <div className="relative flex-1 md:flex-none">
-            <Search className="absolute left-3 top-3 text-gray-500" size={18} />
-            <input
-              type="text"
-              placeholder="Search leads..."
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
-            />
-          </div>
-          {/* Add Lead */}
-          <button
-            onClick={handleAddLead}
-            className="bg-teal-600 text-white px-6 py-2 rounded-xl hover:bg-teal-700 transition-colors flex items-center space-x-2 font-medium"
-          >
-            <Plus size={20} />
-            <span>Add Lead</span>
-          </button>
-          {/* Pagination */}
-          <div className="flex justify-center items-center space-x-3">
-            <button onClick={() => handlePageChange(1)} disabled={currentPage === 1} className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:text-gray-400 shadow-sm transition-all transform hover:scale-105">First</button>
-            <span className="px-5 py-2 rounded-lg bg-teal-600 text-white font-semibold shadow-md">{currentPage}</span>
-            <p>OF</p>
-            <span className="px-5 py-2 rounded-lg bg-gray-50 text-gray-700 border border-gray-300 shadow-sm">{totalPages}</span>
-            <button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:text-gray-400 shadow-sm transition-all transform hover:scale-105">Last</button>
-          </div>
-        </div>
+   {/* Header */}
+{/* Header */}
+<div className="w-full flex flex-col gap-5 px-3 sm:px-4 md:px-6">
+
+  {/* 1️⃣ Title Section */}
+  <div className="text-center md:text-left lg:text-left">
+    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">
+      Lead Management
+    </h2>
+  </div>
+
+  {/* 2️⃣ Actions Section */}
+  <div className="flex flex-col md:flex-col lg:flex-row lg:items-center lg:justify-between gap-3 w-full">
+
+    {/* Search + Add Row */}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full lg:w-auto">
+      {/* Search Input */}
+      <div className="relative w-full sm:w-72 md:w-full lg:w-64">
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+          size={18}
+        />
+        <input
+          type="text"
+          placeholder="Search leads..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none text-sm sm:text-base transition-all"
+        />
       </div>
+
+      {/* Add Lead Button */}
+      <button
+        onClick={handleAddLead}
+        className="flex items-center justify-center gap-2 bg-teal-600 text-white px-5 sm:px-6 py-2 rounded-lg hover:bg-teal-700 active:scale-95 transition-all text-sm sm:text-base shadow-md w-full sm:w-auto"
+      >
+        <Plus size={18} />
+        <span>Add Lead</span>
+      </button>
+    </div>
+
+    {/* Pagination Row */}
+    <div className="flex items-center justify-center md:justify-start flex-wrap gap-2 sm:gap-3 text-sm sm:text-base">
+      <button
+        onClick={() => handlePageChange(1)}
+        disabled={currentPage === 1}
+        className="px-3 sm:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:text-gray-400 shadow-sm transition-all"
+      >
+        First
+      </button>
+
+      <span className="px-4 sm:px-5 py-2 rounded-lg bg-teal-600 text-white font-semibold shadow-md">
+        {currentPage}
+      </span>
+
+      <p className="text-gray-600">of</p>
+
+      <span className="px-4 sm:px-5 py-2 rounded-lg bg-gray-50 text-gray-700 border border-gray-300 shadow-sm">
+        {totalPages}
+      </span>
+
+      <button
+        onClick={() => handlePageChange(totalPages)}
+        disabled={currentPage === totalPages}
+        className="px-3 sm:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:text-gray-400 shadow-sm transition-all"
+      >
+        Last
+      </button>
+    </div>
+  </div>
+</div>
+
+
 
      {/* Responsive Table */}
 <div className="bg-white/40 backdrop-blur-md rounded-2xl border border-white/40 overflow-hidden">
