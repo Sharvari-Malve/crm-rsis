@@ -20,7 +20,14 @@ function App() {
   const navigate = useNavigate();
 
   if (!isLoggedIn) {
-    return <Login onLogin={() => setIsLoggedIn(true)} />;
+    return (
+      <Login
+        onLogin={() => {
+          setIsLoggedIn(true);
+          navigate("/dashboard");
+        }}
+      />
+    );
   }
 
   return (
