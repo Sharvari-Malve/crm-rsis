@@ -11,6 +11,7 @@ import Totalleads from "./components/Totalleads";
 import Assignlist from "./components/Assignlist";
 import Notification from "./components/Notification";
 import TotalFollowUps from "./components/TotalFollowUps"
+
 import Login from "./login/Login";
 
 function App() {
@@ -27,8 +28,6 @@ function App() {
       return <LeadManagement setActiveTab={setActiveTab} />;
     case "follow":
       return <FollowUpData />;
-    case "assign":
-      return <Assignlist />;
     case "totalleads":
       return <Totalleads />;
        case "totalfollow":
@@ -57,7 +56,7 @@ function App() {
           {/*------------ Pass setActiveTab AND user info-------- */}
           <Navbar
             userName="Andrea Pirlo"
-            userRole="CRM Manager"
+            userRole="C Manager"
             userEmail="andrea@example.com"
             userContact="+91 9876543210"
             setActiveTab={setActiveTab}

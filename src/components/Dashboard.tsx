@@ -48,7 +48,7 @@ const StatCard = ({
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-xl p-4 flex flex-col items-center justify-center shadow-lg transition transform hover:scale-105 cursor-pointer"
+      className="bg-white rounded-xl p-2 flex flex-col items-center justify-center shadow-lg transition transform hover:scale-105 cursor-pointer"
     >
       <div className="mb-4 p-3 bg-teal-600 text-white rounded-full">{icon}</div>
       <h2 className="text-3xl font-extrabold">{count}</h2>
