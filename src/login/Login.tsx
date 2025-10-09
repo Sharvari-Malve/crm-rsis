@@ -65,11 +65,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       });
 
       const data = await res.json();
-
+      console.log("Login API response:", data);
       if (res.ok && data?.token) {
         cookies.set("auth", data.token, { path: "/" });
-        if (data.user) cookies.set("userDetails", JSON.stringify(data.user), { path: "/" });
+        cookies.set("userDetails", JSON.stringify(data.details), { path: "/" });
 
+        console.log(" Token stored in cookies:", cookies.get("auth"));
+        console.log(" User details stored in cookies:", cookies.get("userDetails"));
 
         if (remember) {
           cookies.set("rememberEmail", email, { path: "/" });

@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import Cookies from "universal-cookie";
 import { Edit, UserPlus, Plus, Trash2, Search } from "lucide-react";
+import { data } from "react-router-dom";
 
 interface Lead {
   id: number;
@@ -172,9 +173,9 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
   const handleOpenAssignModal = async (lead: Lead) => {
     // Set the current lead and reset other modal states
     setCurrentLead(lead);
-    setSelectedTechnicianId(null); 
-    setTechnicianSearch("");       
-    setShowAssignModal(true);     
+    setSelectedTechnicianId(null);
+    setTechnicianSearch("");
+    setShowAssignModal(true);
 
     try {
       const res = await axios.post(
@@ -204,28 +205,39 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
 
 
 
-  const handleConfirmAssign = async () => {
-    if (!currentLead || !selectedTechnicianId) return;
-    try {
-      setLoading(true);
-      const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/lead-assign`,
-        {
-          leadId: currentLead.id,
-          technicianId: selectedTechnicianId,
-        },
-        { headers: { Authorization: `Bearer ${cookies.get("auth")}` } }
-      );
-      if (res.data.status === "SUCCESS") {
-        toast.success("Technician assigned successfully!");
-        setShowAssignModal(false);
-      } else toast.warn(res.data.message);
-    } catch {
-      toast.error("Error assigning technician.");
-    } finally {
-      setLoading(false);
+ const handleConfirmAssign = async () => {
+  if (!currentLead || !selectedTechnicianId) return;
+
+  try {
+    // toast.info("Assigning technician...", { autoClose: 1000 });
+
+    setLoading(true); 
+
+    const res = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/lead-assign`,
+      {
+        leadId: currentLead.id,
+        assignTo: Number(selectedTechnicianId),
+      },
+      { headers: { Authorization: `Bearer ${cookies.get("auth")}` } }
+    );
+
+    if (res.data.status === "SUCCESS") {
+      toast.success(res.data.message || "Technician assigned successfully!"); 
+      setShowAssignModal(false);
+      setSelectedTechnicianId(null);
+
+      
+      getLeads(); 
+    } else {
+      toast.warn(res.data.message || "Failed to assign technician.");
     }
-  };
+  } catch (error: any) {
+    toast.error(error.response?.data?.message || "Error assigning technician.");
+  } finally {
+    setLoading(false); 
+  }
+};
 
   const handleAddLead = () => {
     setFormData({ name: "", email: "", mobile: "", company: "", leadSource: "", projectName: "", interestPercentage: 0 });
@@ -246,131 +258,126 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
 
   return (
     <div className="space-y-6">
-   {/* Header */}
-{/* Header */}
-<div className="w-full flex flex-col gap-5 px-3 sm:px-4 md:px-6">
+      {/* Header */}
+      <div className="w-full flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 px-2 sm:px-4 md:px-6">
 
-  {/* 1️⃣ Title Section */}
-  <div className="text-center md:text-left lg:text-left">
-    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">
-      Lead Management
-    </h2>
-  </div>
+        {/* Title Section */}
+        <div className="text-center lg:text-left">
+          <h2 className=" sm:text-2xl  font-bold text-gray-800">
+            Lead Management
+          </h2>
+        </div>
 
-  {/* 2️⃣ Actions Section */}
-  <div className="flex flex-col md:flex-col lg:flex-row lg:items-center lg:justify-between gap-3 w-full">
+        {/* Right Side Actions */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-3 w-full lg:w-auto">
 
-    {/* Search + Add Row */}
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full lg:w-auto">
-      {/* Search Input */}
-      <div className="relative w-full sm:w-72 md:w-full lg:w-64">
-        <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-          size={18}
-        />
-        <input
-          type="text"
-          placeholder="Search leads..."
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none text-sm sm:text-base transition-all"
-        />
+          {/* Search Input */}
+          <div className="relative w-full md:w-64">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+              size={18}
+            />
+            <input
+              type="text"
+              placeholder="Search leads..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none text-sm sm:text-base transition-all"
+            />
+          </div>
+
+          {/* Add Lead Button */}
+          <button
+            onClick={handleAddLead}
+            className="flex items-center justify-center gap-2 bg-teal-600 text-white px-5 sm:px-6 py-2 rounded-lg hover:bg-teal-700 active:scale-95 transition-all text-sm sm:text-base shadow-md"
+          >
+            <Plus size={18} />
+            <span>Add Lead</span>
+          </button>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-center flex-wrap gap-2 sm:gap-3 text-sm sm:text-base">
+            <button
+              onClick={() => handlePageChange(1)}
+              disabled={currentPage === 1}
+              className="px-3 sm:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:text-gray-400 shadow-sm transition-all"
+            >
+              First
+            </button>
+
+            <span className="px-4 sm:px-5 py-2 rounded-lg bg-teal-600 text-white font-semibold shadow-md">
+              {currentPage}
+            </span>
+
+            <p className="text-gray-600">of</p>
+
+            <span className="px-4 sm:px-5 py-2 rounded-lg bg-gray-50 text-gray-700 border border-gray-300 shadow-sm">
+              {totalPages}
+            </span>
+
+            <button
+              onClick={() => handlePageChange(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 sm:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:text-gray-400 shadow-sm transition-all"
+            >
+              Last
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Add Lead Button */}
-      <button
-        onClick={handleAddLead}
-        className="flex items-center justify-center gap-2 bg-teal-600 text-white px-5 sm:px-6 py-2 rounded-lg hover:bg-teal-700 active:scale-95 transition-all text-sm sm:text-base shadow-md w-full sm:w-auto"
-      >
-        <Plus size={18} />
-        <span>Add Lead</span>
-      </button>
-    </div>
 
-    {/* Pagination Row */}
-    <div className="flex items-center justify-center md:justify-start flex-wrap gap-2 sm:gap-3 text-sm sm:text-base">
-      <button
-        onClick={() => handlePageChange(1)}
-        disabled={currentPage === 1}
-        className="px-3 sm:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:text-gray-400 shadow-sm transition-all"
-      >
-        First
-      </button>
-
-      <span className="px-4 sm:px-5 py-2 rounded-lg bg-teal-600 text-white font-semibold shadow-md">
-        {currentPage}
-      </span>
-
-      <p className="text-gray-600">of</p>
-
-      <span className="px-4 sm:px-5 py-2 rounded-lg bg-gray-50 text-gray-700 border border-gray-300 shadow-sm">
-        {totalPages}
-      </span>
-
-      <button
-        onClick={() => handlePageChange(totalPages)}
-        disabled={currentPage === totalPages}
-        className="px-3 sm:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 disabled:text-gray-400 shadow-sm transition-all"
-      >
-        Last
-      </button>
-    </div>
-  </div>
-</div>
-
-
-
-     {/* Responsive Table */}
-<div className="bg-white/40 backdrop-blur-md rounded-2xl border border-white/40 overflow-hidden">
-  {/* Mobile wrapper for horizontal scroll */}
-  <div className="overflow-x-auto">
-    <table className="min-w-full divide-y">
-      <thead className="bg-white/20 text-lg">
-        <tr>
-          <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Sr. No</th>
-          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Client Name</th>
-          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Company</th>
-          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Contact</th>
-          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Email</th>
-          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Project Name</th>
-          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Source</th>
-          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Interested %</th>
-          <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Actions</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y">
-        {currentLeads.length > 0 ? (
-          currentLeads.map((lead, index) => (
-            <tr key={lead.id} className="hover:bg-gray-50">
-              <td className="px-4 py-3 whitespace-nowrap">{indexOfFirstLead + index + 1}</td>
-              <td className="px-6 py-3 cursor-pointer whitespace-nowrap" onClick={() => setActiveTab("follow")}>{lead.name}</td>
-              <td className="px-6 py-3 whitespace-nowrap">{lead.company}</td>
-              <td className="px-6 py-3 whitespace-nowrap">{lead.mobile}</td>
-              <td className="px-6 py-3 whitespace-nowrap">{lead.email}</td>
-              <td className="px-6 py-3 whitespace-nowrap">{lead.projectName}</td>
-              <td className="px-6 py-3 whitespace-nowrap">{lead.leadSource}</td>
-              <td className="px-6 py-3 whitespace-nowrap">{lead.interestPercentage}%</td>
-              <td className="px-6 py-3 whitespace-nowrap">
-                <div className="flex items-center space-x-2">
-                  <button className="text-teal-600" onClick={() => handleEditLead(lead)}><Edit size={22} /></button>
-                  <button className="text-red-600" onClick={() => handleDeleteLead(lead)}><Trash2 size={22} /></button>
-                  <button className="text-indigo-600 hover:text-indigo-800" title="Assign" onClick={() => handleOpenAssignModal(lead)}><UserPlus size={22} /></button>
-                </div>
-              </td>
-            </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan={9} className="text-center py-6 text-gray-500">No leads found</td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-</div>
+      {/* Responsive Table */}
+      <div className="bg-white/40 backdrop-blur-md rounded-2xl border border-white/40 overflow-hidden">
+        {/* Mobile wrapper for horizontal scroll */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y">
+            <thead className="bg-white/20 text-lg">
+              <tr>
+                <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Sr. No</th>
+                <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Client Name</th>
+                <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Company</th>
+                <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Contact</th>
+                <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Email</th>
+                <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Project Name</th>
+                <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Source</th>
+                <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Interested %</th>
+                <th className="px-6 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {currentLeads.length > 0 ? (
+                currentLeads.map((lead, index) => (
+                  <tr key={lead.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap">{indexOfFirstLead + index + 1}</td>
+                    <td className="px-6 py-3 cursor-pointer whitespace-nowrap" onClick={() => setActiveTab("follow")}>{lead.name}</td>
+                    <td className="px-6 py-3 whitespace-nowrap">{lead.company}</td>
+                    <td className="px-6 py-3 whitespace-nowrap">{lead.mobile}</td>
+                    <td className="px-6 py-3 whitespace-nowrap">{lead.email}</td>
+                    <td className="px-6 py-3 whitespace-nowrap">{lead.projectName}</td>
+                    <td className="px-6 py-3 whitespace-nowrap">{lead.leadSource}</td>
+                    <td className="px-6 py-3 whitespace-nowrap">{lead.interestPercentage}%</td>
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <button className="text-teal-600" onClick={() => handleEditLead(lead)}><Edit size={22} /></button>
+                        <button className="text-red-600" onClick={() => handleDeleteLead(lead)}><Trash2 size={22} /></button>
+                        <button className="text-indigo-600 hover:text-indigo-800" title="Assign" onClick={() => handleOpenAssignModal(lead)}><UserPlus size={22} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={9} className="text-center py-6 text-gray-500">No leads found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Add/Edit Modal */}
       {showFormModal && (
@@ -510,20 +517,22 @@ export default function LeadManagement({ setActiveTab }: LeadManagementProps) {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3 rounded-b-xl">
-              <button
-                onClick={() => setShowFormModal(false)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveLead}
-                className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg"
-              >
-                Save
-              </button>
-            </div>
+            {/* Footer */}
+<div className="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3 rounded-b-xl">
+  <button
+    onClick={() => setShowFormModal(false)}
+    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
+  >
+    Cancel
+  </button>
+  <button
+    onClick={handleSaveLead}
+    className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg"
+  >
+    {editLead ? "Update" : "Add"}
+  </button>
+</div>
+
           </div>
         </div>
       )}

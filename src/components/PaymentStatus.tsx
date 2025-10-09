@@ -6,6 +6,7 @@ import { Plus, Edit, FileDown, Trash2, Search } from "lucide-react";
 
 interface Payment {
     id: number;
+    paymentId?: string;
     clientName: string;
     projectName: string;
     paymentMethod: "Cash" | "Bank Transfer" | "Online";
@@ -14,8 +15,9 @@ interface Payment {
     remainingAmount: number;
     givenTo: string;
     totalAmount: number;
-    status: "Pending" | "Partially Paid" | " Completed";
+    status: "Pending" | "Partially Paid" | "Completed";
     date: string;
+    createdAt?: string; 
 }
 
 const Payments: React.FC = () => {
@@ -50,7 +52,7 @@ const Payments: React.FC = () => {
     const paymentsPerPage = 5;
 
     const filteredPayments = payments.filter((payment) =>
-        [payment.clientName, payment.projectName,]
+        [payment.clientName, payment.projectName]
             .join(" ")
             .toLowerCase()
             .includes(searchQuery.toLowerCase())
@@ -65,7 +67,7 @@ const Payments: React.FC = () => {
         if (page >= 1 && page <= totalPages) setCurrentPage(page);
     };
 
-    // ✅ Get Payments API
+    // Get Payments API
     const getPayments = async () => {
         try {
             setLoading(true);
@@ -93,7 +95,7 @@ const Payments: React.FC = () => {
         getPayments();
     }, []);
 
-    // ✅ Validation
+    // Validation
     const validateForm = () => {
         const newErrors: typeof errors = {};
 
@@ -109,7 +111,7 @@ const Payments: React.FC = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    // ✅ Save Payment (Add / Update)
+    // Save Payment (Add / Update)
     const handleSavePayment = async () => {
         if (!validateForm()) return;
         try {
@@ -146,7 +148,7 @@ const Payments: React.FC = () => {
         }
     };
 
-    // ✅ Delete Payment
+    // Delete Payment
     const handleDelete = async () => {
         if (!deletePayment) return;
         try {
@@ -171,6 +173,34 @@ const Payments: React.FC = () => {
             setLoading(false);
         }
     };
+
+    // Download Payment Receipt
+    const handleDownload = async (payment: Payment) => {
+        try {
+            setLoading(true);
+            const res = await axios.post(
+                `${import.meta.env.VITE_BACKEND_URL}/download-payment-receipt`,
+                { paymentId: payment.paymentId }, // ✅ Correct payload key
+                {
+                    headers: { Authorization: `Bearer ${cookies.get("auth")}` },
+                    responseType: "blob",
+                }
+            );
+
+            const blob = new Blob([res.data], { type: "application/pdf" });
+            const link = document.createElement("a");
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `${payment.paymentId}_receipt.pdf`;
+            link.click();
+
+            toast.success("Receipt downloaded successfully!");
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Error downloading receipt.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     const handleEdit = (payment: Payment) => {
         setEditPayment(payment);
@@ -201,27 +231,44 @@ const Payments: React.FC = () => {
                         />
                     </div>
                     <button
-                        onClick={() => { setShowModal(true); setEditPayment(null); setFormData(initialFormData); }}
+                        onClick={() => {
+                            setShowModal(true);
+                            setEditPayment(null);
+                            setFormData(initialFormData);
+                        }}
                         className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700"
                     >
                         <Plus size={18} /> Add Payment
                     </button>
                     {/* Pagination */}
                     <div className="flex justify-center items-center space-x-3 ">
-                        <button onClick={() => handlePageChange(1)} disabled={currentPage === 1} className="px-4 py-2 bg-gray-100 rounded-lg">First</button>
-                        <span className="px-5 py-2 bg-teal-600 text-white rounded-lg">{currentPage}</span>
+                        <button
+                            onClick={() => handlePageChange(1)}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-gray-100 rounded-lg"
+                        >
+                            First
+                        </button>
+                        <span className="px-5 py-2 bg-teal-600 text-white rounded-lg">
+                            {currentPage}
+                        </span>
                         <p>OF</p>
-                        <span className="px-5 py-2 bg-gray-50 text-gray-700 border rounded-lg">{totalPages}</span>
-                        <button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} className="px-4 py-2 bg-gray-100 rounded-lg">Last</button>
+                        <span className="px-5 py-2 bg-gray-50 text-gray-700 border rounded-lg">
+                            {totalPages}
+                        </span>
+                        <button
+                            onClick={() => handlePageChange(totalPages)}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 bg-gray-100 rounded-lg"
+                        >
+                            Last
+                        </button>
                     </div>
-
                 </div>
             </div>
 
             {/* Table */}
-
             <div className="bg-white/40 backdrop-blur-md rounded-2xl border border-white/40 overflow-hidden">
-                {/* Mobile scroll wrapper */}
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y">
                         <thead className="bg-white/20 text-left">
@@ -235,32 +282,74 @@ const Payments: React.FC = () => {
                                 <th className="px-4 py-2 whitespace-nowrap">Remaining</th>
                                 <th className="px-4 py-2 whitespace-nowrap">Given To</th>
                                 <th className="px-4 py-2 whitespace-nowrap">Amount</th>
+                                <th className="px-4 py-2 whitespace-nowrap">Date</th>
                                 <th className="px-4 py-2 whitespace-nowrap">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y">
-                            {currentPayments.length > 0 ? currentPayments.map((payment, index) => (
-                                <tr key={payment.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-2 whitespace-nowrap">{indexOfFirstPayment + index + 1}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap">{payment.projectName}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap">{payment.clientName}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap">{payment.paymentMethod}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap">{payment.installmentCount}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap">{payment.paidAmount}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap">{payment.remainingAmount}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap">{payment.givenTo}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap">₹{payment.totalAmount}</td>
-                                    <td className="px-4 py-2 flex gap-2 whitespace-nowrap">
-                                        <button className="text-teal-600" onClick={() => handleEdit(payment)}><Edit size={20} /></button>
-                                        <button className="text-red-600" onClick={() => setDeletePayment(payment)}><Trash2 size={20} /></button>
-                                        <button className="text-gray-600" onClick={() => alert("Download logic")}>
-                                            <FileDown size={20} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            )) : (
+                            {currentPayments.length > 0 ? (
+                                currentPayments.map((payment, index) => (
+                                    <tr key={payment.id} className="hover:bg-gray-50">
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {indexOfFirstPayment + index + 1}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {payment.projectName}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {payment.clientName}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {payment.paymentMethod}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {payment.installmentCount}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {payment.paidAmount}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {payment.remainingAmount}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {payment.givenTo}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            ₹{payment.totalAmount}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString("en-GB") : "-"}
+                                        </td>
+                                        <td className="px-4 py-2 flex gap-2 whitespace-nowrap">
+                                            <button
+                                                className="text-teal-600"
+                                                onClick={() => handleEdit(payment)}
+                                            >
+                                                <Edit size={20} />
+                                            </button>
+                                            <button
+                                                className="text-red-600"
+                                                onClick={() => setDeletePayment(payment)}
+                                            >
+                                                <Trash2 size={20} />
+                                            </button>
+                                            <button
+                                                className="text-gray-600"
+                                                onClick={() => handleDownload(payment)}
+                                            >
+                                                <FileDown size={20} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
                                 <tr>
-                                    <td colSpan={10} className="text-center py-6 text-gray-500">No payments found</td>
+                                    <td
+                                        colSpan={10}
+                                        className="text-center py-6 text-gray-500"
+                                    >
+                                        No payments found
+                                    </td>
                                 </tr>
                             )}
                         </tbody>
@@ -268,15 +357,14 @@ const Payments: React.FC = () => {
                 </div>
             </div>
 
-
-
-
             {/* Add/Edit Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
                     <div className="bg-white w-[700px] shadow-2xl rounded-lg border border-gray-200">
                         <div className="bg-gradient-to-r from-teal-600 to-teal-500 px-6 py-3 rounded-t-lg">
-                            <h3 className="text-xl font-bold text-white">{editPayment ? "Edit Payment" : "Add Payment"}</h3>
+                            <h3 className="text-xl font-bold text-white">
+                                {editPayment ? "Edit Payment" : "Add Payment"}
+                            </h3>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
@@ -285,10 +373,17 @@ const Payments: React.FC = () => {
                                     <input
                                         type="text"
                                         value={formData.projectName}
-                                        onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
-                                        className={`w-full border px-3 py-2 ${errors.projectName ? "border-red-500" : ""}`}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, projectName: e.target.value })
+                                        }
+                                        className={`w-full border px-3 py-2 ${errors.projectName ? "border-red-500" : ""
+                                            }`}
                                     />
-                                    {errors.projectName && <p className="text-red-500 text-xs">{errors.projectName}</p>}
+                                    {errors.projectName && (
+                                        <p className="text-red-500 text-xs">
+                                            {errors.projectName}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -296,17 +391,27 @@ const Payments: React.FC = () => {
                                     <input
                                         type="text"
                                         value={formData.clientName}
-                                        onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                                        className={`w-full border px-3 py-2 ${errors.clientName ? "border-red-500" : ""}`}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, clientName: e.target.value })
+                                        }
+                                        className={`w-full border px-3 py-2 ${errors.clientName ? "border-red-500" : ""
+                                            }`}
                                     />
-                                    {errors.clientName && <p className="text-red-500 text-xs">{errors.clientName}</p>}
+                                    {errors.clientName && (
+                                        <p className="text-red-500 text-xs">{errors.clientName}</p>
+                                    )}
                                 </div>
 
                                 <div>
                                     <label>Payment Method</label>
                                     <select
                                         value={formData.paymentMethod}
-                                        onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value as any })}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                paymentMethod: e.target.value as any,
+                                            })
+                                        }
                                         className="w-full border px-3 py-2"
                                     >
                                         <option value="Cash">Cash</option>
@@ -319,12 +424,14 @@ const Payments: React.FC = () => {
                                     <label>Status</label>
                                     <select
                                         value={formData.status}
-                                        onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, status: e.target.value as any })
+                                        }
                                         className="w-full border px-3 py-2"
                                     >
                                         <option value="Pending">Pending</option>
-                                        <option value="Partial">Partial</option>
-                                        <option value="Paid">Paid</option>
+                                        <option value="Partially Paid">Partially Paid</option>
+                                        <option value="Completed">Completed</option>
                                     </select>
                                 </div>
 
@@ -333,10 +440,20 @@ const Payments: React.FC = () => {
                                     <input
                                         type="number"
                                         value={formData.installmentCount}
-                                        onChange={(e) => setFormData({ ...formData, installmentCount: Number(e.target.value) })}
-                                        className={`w-full border px-3 py-2 ${errors.installmentCount ? "border-red-500" : ""}`}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                installmentCount: Number(e.target.value),
+                                            })
+                                        }
+                                        className={`w-full border px-3 py-2 ${errors.installmentCount ? "border-red-500" : ""
+                                            }`}
                                     />
-                                    {errors.installmentCount && <p className="text-red-500 text-xs">{errors.installmentCount}</p>}
+                                    {errors.installmentCount && (
+                                        <p className="text-red-500 text-xs">
+                                            {errors.installmentCount}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -344,10 +461,20 @@ const Payments: React.FC = () => {
                                     <input
                                         type="number"
                                         value={formData.paidAmount}
-                                        onChange={(e) => setFormData({ ...formData, paidAmount: Number(e.target.value) })}
-                                        className={`w-full border px-3 py-2 ${errors.paidAmount ? "border-red-500" : ""}`}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                paidAmount: Number(e.target.value),
+                                            })
+                                        }
+                                        className={`w-full border px-3 py-2 ${errors.paidAmount ? "border-red-500" : ""
+                                            }`}
                                     />
-                                    {errors.paidAmount && <p className="text-red-500 text-xs">{errors.paidAmount}</p>}
+                                    {errors.paidAmount && (
+                                        <p className="text-red-500 text-xs">
+                                            {errors.paidAmount}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -355,10 +482,20 @@ const Payments: React.FC = () => {
                                     <input
                                         type="number"
                                         value={formData.remainingAmount}
-                                        onChange={(e) => setFormData({ ...formData, remainingAmount: Number(e.target.value) })}
-                                        className={`w-full border px-3 py-2 ${errors.remainingAmount ? "border-red-500" : ""}`}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                remainingAmount: Number(e.target.value),
+                                            })
+                                        }
+                                        className={`w-full border px-3 py-2 ${errors.remainingAmount ? "border-red-500" : ""
+                                            }`}
                                     />
-                                    {errors.remainingAmount && <p className="text-red-500 text-xs">{errors.remainingAmount}</p>}
+                                    {errors.remainingAmount && (
+                                        <p className="text-red-500 text-xs">
+                                            {errors.remainingAmount}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -366,10 +503,15 @@ const Payments: React.FC = () => {
                                     <input
                                         type="text"
                                         value={formData.givenTo}
-                                        onChange={(e) => setFormData({ ...formData, givenTo: e.target.value })}
-                                        className={`w-full border px-3 py-2 ${errors.givenTo ? "border-red-500" : ""}`}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, givenTo: e.target.value })
+                                        }
+                                        className={`w-full border px-3 py-2 ${errors.givenTo ? "border-red-500" : ""
+                                            }`}
                                     />
-                                    {errors.givenTo && <p className="text-red-500 text-xs">{errors.givenTo}</p>}
+                                    {errors.givenTo && (
+                                        <p className="text-red-500 text-xs">{errors.givenTo}</p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -377,46 +519,68 @@ const Payments: React.FC = () => {
                                     <input
                                         type="number"
                                         value={formData.totalAmount}
-                                        onChange={(e) => setFormData({ ...formData, totalAmount: Number(e.target.value) })}
-                                        className={`w-full border px-3 py-2 ${errors.totalAmount ? "border-red-500" : ""}`}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                totalAmount: Number(e.target.value),
+                                            })
+                                        }
+                                        className={`w-full border px-3 py-2 ${errors.totalAmount ? "border-red-500" : ""
+                                            }`}
                                     />
-                                    {errors.totalAmount && <p className="text-red-500 text-xs">{errors.totalAmount}</p>}
-                                </div>
-
-                                <div>
-                                    <label>Date</label>
-                                    <input
-                                        type="date"
-                                        value={formData.date}
-                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                        className="w-full border px-3 py-2"
-                                    />
+                                    {errors.totalAmount && (
+                                        <p className="text-red-500 text-xs">
+                                            {errors.totalAmount}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t">
-                            <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
-                            <button onClick={handleSavePayment} className="px-5 py-2 bg-teal-600 text-white rounded-lg">Save</button>
+                            <div className="flex justify-end mt-6 gap-3">
+                                <button
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        setEditPayment(null);
+                                    }}
+                                    className="px-4 py-2 border rounded-lg"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSavePayment}
+                                    className="px-4 py-2 bg-teal-600 text-white rounded-lg"
+                                >
+                                    {editPayment ? "Update" : "Save"}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
 
-
-            {/* Delete Modal */}
+            {/* Delete Confirmation */}
             {deletePayment && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-                    <div className="bg-white w-[500px] shadow-2xl border border-gray-300 rounded-xl">
-                        <div className="bg-gradient-to-r from-red-600 to-red-500 px-6 py-4 rounded-t-xl">
-                            <h3 className="text-2xl font-bold text-white">Confirm Delete</h3>
-                        </div>
-                        <div className="p-6 text-gray-700">
-                            Are you sure you want to delete payment #{deletePayment.id} for <strong>{deletePayment.clientName}</strong>?
-                        </div>
-                        <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
-                            <button onClick={() => setDeletePayment(null)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
-                            <button onClick={handleDelete} className="px-5 py-2 bg-red-600 text-white rounded-lg">Delete</button>
+                    <div className="bg-white w-[400px] shadow-xl rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                            Confirm Delete
+                        </h3>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to delete this payment record?
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setDeletePayment(null)}
+                                className="px-4 py-2 border rounded-lg"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg"
+                            >
+                                Delete
+                            </button>
                         </div>
                     </div>
                 </div>
