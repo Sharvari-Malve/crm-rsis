@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Search, Bell, LogOut, User, Mail, Phone } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, LogOut, User, Mail, Phone } from 'lucide-react';
+import Cookies from 'universal-cookie';
 
 interface NavbarProps {
   userName: string;
@@ -7,18 +8,55 @@ interface NavbarProps {
   userEmail: string;
   userContact: string;
   setActiveTab: (tab: string) => void;
+  setSidebarOpen?: (open: boolean) => void;
+  onSignOut?: () => void;
 }
 
-export default function Navbar({ userName, userRole, userEmail, userContact, setActiveTab }: NavbarProps) {
+export default function Navbar({
+  userName,
+  userRole,
+  userEmail,
+  userContact,
+  setActiveTab,
+  setSidebarOpen,
+  onSignOut,
+}: NavbarProps) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const unreadCount = 3;
 
+  const cookies = new Cookies();
+
+  const handleSignOut = () => {
+    cookies.remove('token');
+    onSignOut?.();
+  };
 
   return (
-    <nav className="px-6 py-2 bg-[#ebedfa] rounded-2xl mt-4 mr-4 mb-4 shadow-lg">
-      <div className="flex items-center justify-between">
-        {/* Welcome Section */}
-        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+    <nav className="px-4 py-2 bg-[#ebedfa] rounded-2xl mt-4 mr-4 mb-4 shadow-lg items-center">
+      <div className="flex items-center justify-between relative">
+        {/* Left: hamburger */}
+        <div className="flex items-center">
+          <button
+            onClick={() => setSidebarOpen?.(true)}
+            className="md:hidden p-2 bg-white/30 rounded-lg"
+            aria-label="Open menu"
+          >
+            <svg
+              className="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
 
         {/* Right Section */}
         <div className="flex items-center space-x-4">
@@ -26,7 +64,7 @@ export default function Navbar({ userName, userRole, userEmail, userContact, set
           <div className="relative">
             <button
               className="relative p-2 bg-white/30 rounded-xl hover:bg-white/40 transition-colors"
-              onClick={() => setActiveTab("notify")}
+              onClick={() => setActiveTab('notify')}
             >
               <Bell size={20} className="text-gray-700" />
               {unreadCount > 0 && (
@@ -38,11 +76,18 @@ export default function Navbar({ userName, userRole, userEmail, userContact, set
           </div>
 
           {/* Profile Dropdown */}
-          <div className="relative group">
+          <div
+            className="relative"
+            onMouseEnter={() => setDropdownOpen(true)}
+            onMouseLeave={() => setDropdownOpen(false)}
+          >
             <button className="flex items-center space-x-3 p-2 rounded-xl hover:bg-white/40 transition-colors">
               <div className="w-8 h-8 bg-gradient-to-r from-teal-500 to-blue-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-semibold text-sm">
-                  {userName.split(' ').map(n => n[0]).join('')}
+                  {userName
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')}
                 </span>
               </div>
               <div className="hidden md:block text-left">
@@ -51,20 +96,14 @@ export default function Navbar({ userName, userRole, userEmail, userContact, set
               </div>
             </button>
 
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-200 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-              <div className="p-4 border-b border-gray-100">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gradient-to-r from-teal-500 to-blue-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-semibold">{userName.split(' ').map(n => n[0]).join('')}</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-800">{userName}</p>
-                    <p className="text-sm text-gray-600">{userRole}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* My Profile Button */}
+            <div
+              className={`absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-200 z-50 transition-all duration-200 ${
+                dropdownOpen
+                  ? 'opacity-100 visible translate-y-0'
+                  : 'opacity-0 invisible -translate-y-2'
+              }`}
+            >
+              {/* My Profile */}
               <div className="py-2">
                 <button
                   onClick={() => setIsProfileModalOpen(true)}
@@ -77,7 +116,10 @@ export default function Navbar({ userName, userRole, userEmail, userContact, set
 
               {/* Sign Out */}
               <div className="border-t border-gray-100 py-2">
-                <button className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-red-50 transition-colors text-left">
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-red-50 transition-colors text-left"
+                >
                   <LogOut size={18} className="text-red-600" />
                   <span className="text-red-600">Sign Out</span>
                 </button>
@@ -87,45 +129,28 @@ export default function Navbar({ userName, userRole, userEmail, userContact, set
         </div>
       </div>
 
-      {/* Mobile Search */}
-      <div className="mt-4 md:hidden">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="w-full pl-10 pr-4 py-2 bg-white/50 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
-          />
-        </div>
-      </div>
-
+      {/* Profile Modal */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl w-[350px] shadow-xl relative p-6">
-
-            {/* Gradient background circle effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-orange-400 rounded-2xl -z-10" />
-
-            {/* Profile Image Placeholder */}
             <div className="flex justify-center -mt-16 mb-4">
               <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-md">
                 <div className="w-20 h-20 bg-gradient-to-r from-teal-500 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                  {userName.split(' ').map(n => n[0]).join('')}
+                  {userName
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')}
                 </div>
               </div>
             </div>
-
-            {/* User Info */}
             <div className="text-center">
-              <h2 className="text-xl font-semibold text-gray-800">{userName}</h2>
+              <h2 className="text-xl font-semibold text-gray-800">
+                {userName}
+              </h2>
               <p className="text-sm text-gray-600">{userRole}</p>
             </div>
-
-            {/* Contact Info */}
-
             <div className="mt-4 space-y-2 px-4">
-
-
               <div className="flex items-center space-x-2 text-sm text-gray-700">
                 <Mail className="w-4 h-4 text-teal-600" />
                 <span>{userEmail}</span>
@@ -135,18 +160,15 @@ export default function Navbar({ userName, userRole, userEmail, userContact, set
                 <span>{userContact}</span>
               </div>
             </div>
-
-            {/* Close Button */}
             <button
               onClick={() => setIsProfileModalOpen(false)}
-              className="mt-6 w-full bg-teal-600 hover:bg-teal-600 text-white py-2 rounded-xl transition-colors"
+              className="mt-6 w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-xl transition-colors"
             >
               Close
             </button>
           </div>
         </div>
       )}
-
     </nav>
   );
 }

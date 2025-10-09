@@ -17,3 +17,42 @@
 .body-scroll {
   overflow-x: hidden;
 }
+/* Base Toast */
+.Toastify__toast {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  border-radius: 12px !important;
+  padding: 16px 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Success */
+.Toastify__toast--success {
+  background: linear-gradient(to right, #14b8a6, #0f766e);
+  color: white;
+}
+
+/* Error */
+.Toastify__toast--error {
+  background: linear-gradient(to right, #ef4444, #b91c1c);
+  color: white;
+}
+
+/* Warning */
+.Toastify__toast--warning {
+  background: linear-gradient(to right, #f59e0b, #b45309);
+  color: white;
+}
+
+/* Info */
+.Toastify__toast--info {
+  background: linear-gradient(to right, #0ea5e9, #0284c7);
+  color: white;
+}
+
+/* Progress bar */
+.Toastify__progress-bar {
+  background: white;
+  height: 4px;
+  border-radius: 2px;
+}

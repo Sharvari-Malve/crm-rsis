@@ -292,7 +292,7 @@ export default function FollowUpManagement() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Follow Up Management</h2>
-          <p className="text-gray-600 mt-1">{headerLead ? `${headerLead.clientName} • ${headerLead.projectName}` : 'All Leads'} </p>
+          <p className="text-gray-600 mt-1">{headerLead ? `${headerLead.clientName} • ${headerLead.projectName}` : 'All Leads'}</p>
         </div>
         <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:flex-none">
@@ -339,8 +339,10 @@ export default function FollowUpManagement() {
       </div>
 
       {/* Table */}
-      <div className="bg-white/40 backdrop-blur-md rounded-2xl border border-white/40 overflow-hidden max-h-[400px] overflow-y-auto scrollbar-hide">
-        <table className="w-full min-w-[900px]">
+      <div className="bg-white/40 backdrop-blur-md rounded-2xl border border-white/40 overflow-hidden">
+        {/* Desktop table (md and up) */}
+        <div className="hidden md:block w-full overflow-x-auto scrollbar-hide max-h-[400px]">
+          <table className="w-full min-w-[900px]">
           <thead className="bg-white/20 sticky top-0">
             <tr>
               <th className="px-2 py-3">Sr. No</th>
@@ -405,14 +407,40 @@ export default function FollowUpManagement() {
             )}
           </tbody>
         </table>
+        </div>
+
+        {/* Mobile card list */}
+        <div className="md:hidden p-4 space-y-3">
+          {currentLeads.map((lead, index) => (
+            <div key={lead.id} className="bg-white rounded-lg p-3 shadow-sm border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-gray-600">{indexOfFirstLead + index + 1}. {lead.clientName} • {lead.projectName}</div>
+                  <div className="text-xs text-gray-500 mt-1">Next: {lead.nextFollowUpDate ? new Date(lead.nextFollowUpDate).toLocaleDateString('en-GB') : '-'}</div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button onClick={() => handleEditLead(lead)} className="text-green-600"><Edit size={16} /></button>
+                  <button onClick={() => { setUploadLead(lead); setShowUploadModal(true); }} className="text-teal-600"><Upload size={16} /></button>
+                  <button onClick={() => confirmDelete(lead)} className="text-red-600"><Trash2 size={16} /></button>
+                </div>
+              </div>
+              <div className="mt-2 text-sm text-gray-700">
+                <div>Follow Up By: {lead.followUpBy || '-'}</div>
+                <div>Mode: {lead.mode || '-'}</div>
+                <div>Remark: {lead.remark || '-'}</div>
+                <div>Status: {lead.status || '-'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
 
 
       {/* Add/Edit Modal */}
       {showFormModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-white w-[600px] max-h-[80vh] shadow-2xl border border-gray-300 rounded-xl flex flex-col">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="bg-white w-full max-w-2xl max-h-[90vh] shadow-2xl border border-gray-300 rounded-xl flex flex-col">
             <div className="bg-gradient-to-r from-teal-600 to-teal-500 px-6 py-4 rounded-t-xl">
               <h3 className="text-2xl font-bold text-white">{editLead ? "Edit Follow-Up" : "Add Follow-Up"}</h3>
             </div>
@@ -516,8 +544,8 @@ export default function FollowUpManagement() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && deleteTarget && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white w-[420px] shadow-2xl border border-gray-300 rounded-xl p-6">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white w-full max-w-md shadow-2xl border border-gray-300 rounded-xl p-6">
             <h3 className="text-lg font-semibold">Confirm Delete</h3>
             <p className="text-sm text-gray-600 mt-2">Are you sure you want to delete follow-up for <strong>{deleteTarget.clientName}</strong>?</p>
             <div className="mt-6 flex justify-end space-x-3">
@@ -531,8 +559,8 @@ export default function FollowUpManagement() {
 
       {/* Upload Modal */}
       {showUploadModal && uploadLead && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-white w-[500px] shadow-2xl border border-gray-300 rounded-xl">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="bg-white w-full max-w-md shadow-2xl border border-gray-300 rounded-xl">
             <div className="bg-gradient-to-r from-teal-600 to-teal-500 px-6 py-4 rounded-t-xl">
               <h3 className="text-2xl font-bold text-white">Upload Quotation</h3>
             </div>
